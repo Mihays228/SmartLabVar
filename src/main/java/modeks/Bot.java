@@ -138,6 +138,7 @@ public class Bot extends TelegramLongPollingBot {
         }
         return name;
     }
+    //sdfasdfadf
 
     public String returnListPrice(Element element) {
         String price = "";
