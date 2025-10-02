@@ -5,18 +5,25 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Bot extends TelegramLongPollingBot {
+    Map<String, String> mapShares = new HashMap<>();
+    StringBuilder builderShares = new StringBuilder();
+
     //TODO Кнопки и клавиатуры для меню
     private InlineKeyboardButton buttonForListShares = InlineKeyboardButton.builder()
             .text("Получить список всех акций")
@@ -85,7 +92,7 @@ public class Bot extends TelegramLongPollingBot {
                     .build();
 
             if (callbackData.equals(buttonForListShares.getCallbackData())) {
-                editMessageText.setText("asdfasf");
+                editMessageText.setText("zzz");
                 try {
                     Document document = Jsoup.connect("https://smart-lab.ru/q/shares/").get();
 
@@ -97,12 +104,28 @@ public class Bot extends TelegramLongPollingBot {
                     for (Element element : elements) {
                         String strElement = element.toString();
 //                        System.out.println("\\U+1F600" + strElement + "\\U+1F600");
-                        if (strElement.contains("trades-table__name")) {
-                            System.out.println("название " + returnListName(element));
+                        if (strElement.contains("trades-table__name") && strElement.contains("trades-table__price")) {
+                            mapShares.put(returnListName(element), returnListPrice(element));
                         }
-                        if (strElement.contains("trades-table__price")) {
-                            System.out.println("цена " + returnListPrice(element));
-                        }
+                    }
+                    for (Map.Entry<String, String> mapShare : mapShares.entrySet()) {
+                        builderShares.append(mapShare.getKey() + " - " + mapShare.getValue() + " руб.\n");
+                        System.out.println("\"" + mapShare + "\"");
+                    }
+
+                    FileWriter fileWriterForShares = new FileWriter("src/main/resources/data/name_price_share.txt");
+                    fileWriterForShares.write(builderShares.toString());
+                    fileWriterForShares.close();
+
+                    SendDocument sendDocument = SendDocument.builder()
+                            .document(new InputFile(new File("src/main/resources/data/name_price_share.txt")))
+                            .chatId(chatId)
+                            .build();
+
+                    try {
+                        execute(sendDocument);
+                    } catch (Exception ex) {
+                        System.out.println(ex.getMessage());
                     }
 
                 } catch (Exception ex) {
@@ -138,7 +161,6 @@ public class Bot extends TelegramLongPollingBot {
         }
         return name;
     }
-    //sdfasdfadfgf
 
     public String returnListPrice(Element element) {
         String price = "";
